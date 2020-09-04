@@ -1,0 +1,58 @@
+##############################
+# specify the moves on trees #
+##############################
+
+if ( tree_type == "clock" ) {
+
+	# standard moves on rooted trees
+	moves[++mvi] = mvFNPR(psi, weight=100)
+	moves[++mvi] = mvGPR(psi, weight=20)	
+	moves[++mvi] = mvNarrow(psi, weight=100)
+	moves[++mvi] = mvNodeTimeSlideUniform(psi, weight=50)
+	moves[++mvi] = mvNodeTimeSlideBeta(psi, weight=50)
+	moves[++mvi] = mvRootTimeSlideUniform(psi, stem_age, weight=25)
+	moves[++mvi] = mvSubtreeScale(psi, weight=50)
+	moves[++mvi] = mvNodeTimeSlideBeta(psi, weight=25)
+
+	# joint scale proposal on the tree
+	tree_scale_move_index = ++mvi
+	moves[tree_scale_move_index] = mvUpDownScale(weight=20, tuneTarget=0.234, lambda=0.01)
+	moves[tree_scale_move_index].addVariable(psi, up=false)
+	moves[tree_scale_move_index].addVariable(stem_age, up=false)
+
+	# fossil ages
+	fossils = psi.getFossils()
+	for(i in 1:fossils.size()) {
+	
+		# get the fossil age
+		t[i] := tmrca(psi, clade(fossils[i]))
+	
+		# monitor the age
+		monitors[1].addVariable(t[i])
+	
+		# specify the age contraint
+	    a = fossils[i].getMinAge()
+	    b = fossils[i].getMaxAge()
+	
+	    F[i] ~ dnUniform(t[i] - b, t[i] - a)
+	    F[i].clamp( 0 )
+	
+		moves[++mvi] = mvFossilTimeSlideUniform(psi, stem_age, fossils[i], weight=1.0)
+	}
+	
+	# sampled ancestors
+	if ( sample_ancestors == true ) {
+		moves[++mvi] = mvCollapseExpandFossilBranch(psi, stem_age, weight=2 * fossils.size())
+	}
+
+
+} else if ( tree_type == "non-clock") {
+
+	# standard moves on unrooted trees
+	moves[++mvi] = mvNNI(psi, weight=50)
+	moves[++mvi] = mvSPR(psi, weight=50)
+	moves[++mvi] = mvBranchLengthScale(psi, weight=num_branches)
+
+} else {
+	"Warning: no tree moves found."
+}

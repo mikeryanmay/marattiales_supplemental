@@ -1,0 +1,75 @@
+############################################
+# specify the molecular substitution model #
+############################################
+
+"making the partitioned GTR+I+G model"
+
+NUM_RATE_CATS_MOLE = 4
+
+# each data partition gets independent GTR+I+G
+for(i in 1:num_molecular_partitions) {
+
+    # make pi
+    pi[i] ~ dnDirichlet([1,1,1,1])
+    moves[++mvi] = mvBetaSimplex(pi[i], weight=1)
+	moves[++mvi] = mvElementSwapSimplex(pi[i], weight=0.25)
+    monitors[1].addVariable(pi[i])
+
+    # make er
+    er[i] ~ dnDirichlet([1,1,1,1,1,1])
+    moves[++mvi] = mvBetaSimplex(er[i], weight=1)
+	moves[++mvi] = mvElementSwapSimplex(er[i], weight=0.25)
+    monitors[1].addVariable(er[i])
+
+    Q[i] := fnGTR(er[i], pi[i])
+
+    # make pinv
+    pinv[i] ~ dnBeta(1,1)
+    moves[++mvi] = mvBetaProbability(pinv[i], weight=1)
+    monitors[1].addVariable(pinv[i])
+
+    # make alpha
+    # gamma_var[i] ~ dnExponential(1)
+    # gamma_var[i] ~ dnGamma(2, 2)
+    # moves[++mvi] = mvScale(gamma_var[i], weight=0.5)
+    # gamma_alpha[i] := 1.0 / gamma_var[i]
+
+	gamma_alpha[i] ~ dnUniform(0, 10)
+	# gamma_alpha[i] ~ dnGamma(2,2)
+	moves[++mvi] = mvScale(gamma_alpha[i], weight=1)
+
+	# make the gamma-distributed rates
+    site_rates[i] := fnDiscretizeGamma(gamma_alpha[i], gamma_alpha[i], NUM_RATE_CATS_MOLE)
+
+    # monitors[1].addVariable(gamma_var[i])
+    monitors[1].addVariable(gamma_alpha[i])
+
+	# joint moves and pinv and alpha
+	moves[++mvi] = mvUpDownSlide(weight=0.5)
+	moves[mvi].addVariable(pinv[i], up=true)
+	moves[mvi].addVariable(gamma_alpha[i], up=true)
+
+}
+
+molecular_rel_rates ~ dnDirichlet( rep(1, num_molecular_partitions) )
+moves[++mvi] = mvBetaSimplex(molecular_rel_rates, weight=num_molecular_partitions)
+moves[++mvi] = mvElementSwapSimplex(molecular_rel_rates, weight=2)
+molecular_prop_rates := molecular_rel_rates * num_molecular_partitions
+monitors[1].addVariable(molecular_prop_rates)
+
+# create the CTMCs
+for(i in 1:num_molecular_partitions) {
+
+	seq[i] ~ dnPhyloCTMC(psi, Q[i], branchRates=branch_rate_mole, siteRates=site_rates[i] * molecular_prop_rates[i], pInv=pinv[i])
+		
+    # clamp the observed data
+    seq[i].clamp( molecular_data[i] )
+	
+	# track the likelihood
+	seq_likelihood[i] := seq[i].lnProbability()
+	monitors[1].addVariable(seq_likelihood[i])
+
+	# create a mixture allocation monitor
+    # monitors[++mni] = mnSiteMixtureAllocation(seq[i], printgen=sample_freq, filename=output_dir + "site_mixture_" + i + "_" + run_ID + ".log", type="DNA")
+
+}

@@ -29,7 +29,7 @@ timescale = readDataDelimitedFile(file = epoch_file, header = true, delimiter=",
 num_bins  = timescale.size()
 
 for(i in 1:num_bins) {
-    breakpoints[num_bins + 1 - i] <- timescale[i][2]
+	breakpoints[i] <- timescale[i][2]
 }
 
 # the mean fossilization rate
@@ -102,25 +102,25 @@ moves[++mvi] = mvUpDownScale(weight=5)
 moves[mvi].addVariable(extinction_rate_mean, up=true)
 moves[mvi].addVariable(speciation_rate_mean, up=true)
 
-# # draw the rates for each interval
-# for(i in 1:(breakpoints.size() + 1)) {
-# 
-# 	# fossilization rate
-#     fossilization_rate[i] ~ dnMixture( fossilization_mixture_rates, fossilization_mixture_weights )
-#     moves[++mvi] = mvGibbsMixtureAllocation( fossilization_rate[i], weight=2 )
-#     monitors[1].addVariable(fossilization_rate[i])
-# 
-# 	# speciation rate
-#     speciation_rate[i] ~ dnMixture( speciation_mixture_rates, speciation_mixture_weights )
-#     moves[++mvi] = mvGibbsMixtureAllocation( speciation_rate[i], weight=2 )
-#     monitors[1].addVariable(speciation_rate[i])
-# 
-# 	# extinction rate
-#     extinction_rate[i] ~ dnMixture( extinction_mixture_rates, extinction_mixture_weights )
-#     moves[++mvi] = mvGibbsMixtureAllocation( extinction_rate[i], weight=2 )
-#     monitors[1].addVariable(extinction_rate[i])
-# 
-# }
+# draw the rates for each interval
+for(i in 1:(breakpoints.size() + 1)) {
+
+	# fossilization rate
+    fossilization_rate[i] ~ dnMixture( fossilization_mixture_rates, fossilization_mixture_weights )
+    moves[++mvi] = mvGibbsMixtureAllocation( fossilization_rate[i], weight=2 )
+    monitors[1].addVariable(fossilization_rate[i])
+
+	# speciation rate
+    speciation_rate[i] ~ dnMixture( speciation_mixture_rates, speciation_mixture_weights )
+    moves[++mvi] = mvGibbsMixtureAllocation( speciation_rate[i], weight=2 )
+    monitors[1].addVariable(speciation_rate[i])
+
+	# extinction rate
+    extinction_rate[i] ~ dnMixture( extinction_mixture_rates, extinction_mixture_weights )
+    moves[++mvi] = mvGibbsMixtureAllocation( extinction_rate[i], weight=2 )
+    monitors[1].addVariable(extinction_rate[i])
+
+}
 
 # joint moves on the quantiles
 for(i in 1:num_div_rate_cats) {
@@ -131,39 +131,39 @@ for(i in 1:num_div_rate_cats) {
 	}
 }
 
-# enumerate all combinations of diversification rates
-idx = 0
-for(i in 1:num_div_rate_cats) {
-	for(j in 1:num_div_rate_cats) {
-		for(k in 1:num_div_rate_cats) {
-			idx = idx + 1
-			div_category_param[idx] := [ speciation_mixture_rates[i], extinction_mixture_rates[j], fossilization_mixture_rates[k] ]
-			# div_category_param[idx][1] := speciation_mixture_rates[i]
-			# div_category_param[idx][2] := extinction_mixture_rates[j]
-			# div_category_param[idx][3] := fossilization_mixture_rates[k]
-			category_weight[idx]       := speciation_mixture_weights[i] * extinction_mixture_weights[j] * fossilization_mixture_weights[k]
-		}
-	}
-}
-
-# draw the rates for each interval
-for(i in 1:(breakpoints.size() + 1)) {
-
-	# draw the mixture category
-	div_mix_cat[i] ~ dnMixture( div_category_param, simplex(category_weight) )
-	moves[++mvi] = mvGibbsMixtureAllocation( div_mix_cat[i], weight=5, tuneTarget=0.2 )
-
-	# get the diversification rates
-	speciation_rate[i]    := div_mix_cat[i][1]
-	extinction_rate[i]    := div_mix_cat[i][2]
-	fossilization_rate[i] := div_mix_cat[i][3]
-
-	# add the monitors
-	monitors[1].addVariable(speciation_rate[i])
-	monitors[1].addVariable(extinction_rate[i])
-	monitors[1].addVariable(fossilization_rate[i])
-
-}
+# # enumerate all combinations of diversification rates
+# idx = 0
+# for(i in 1:num_div_rate_cats) {
+# 	for(j in 1:num_div_rate_cats) {
+# 		for(k in 1:num_div_rate_cats) {
+# 			idx = idx + 1
+# 			div_category_param[idx] := [ speciation_mixture_rates[i], extinction_mixture_rates[j], fossilization_mixture_rates[k] ]
+# 			# div_category_param[idx][1] := speciation_mixture_rates[i]
+# 			# div_category_param[idx][2] := extinction_mixture_rates[j]
+# 			# div_category_param[idx][3] := fossilization_mixture_rates[k]
+# 			category_weight[idx]       := speciation_mixture_weights[i] * extinction_mixture_weights[j] * fossilization_mixture_weights[k]
+# 		}
+# 	}
+# }
+# 
+# # draw the rates for each interval
+# for(i in 1:(breakpoints.size() + 1)) {
+# 
+# 	# draw the mixture category
+# 	div_mix_cat[i] ~ dnMixture( div_category_param, simplex(category_weight) )
+# 	moves[++mvi] = mvGibbsMixtureAllocation( div_mix_cat[i], weight=5, tuneTarget=0.2 )
+# 
+# 	# get the diversification rates
+# 	speciation_rate[i]    := div_mix_cat[i][1]
+# 	extinction_rate[i]    := div_mix_cat[i][2]
+# 	fossilization_rate[i] := div_mix_cat[i][3]
+# 
+# 	# add the monitors
+# 	monitors[1].addVariable(speciation_rate[i])
+# 	monitors[1].addVariable(extinction_rate[i])
+# 	monitors[1].addVariable(fossilization_rate[i])
+# 
+# }
 
 net_div_rate := speciation_rate - extinction_rate
 monitors[1].addVariable(net_div_rate)
@@ -177,17 +177,15 @@ monitors[1].addVariable(mean_extinction_rate)
 monitors[1].addVariable(mean_fossilization_rate)
 
 # create the tree distribution
-psi ~ dnSerialSampledBirthDeath(origin      = stem_age,
-                                lambda      = speciation_rate,
-                                mu          = extinction_rate,
-                                psi         = fossilization_rate,
-                                rho         = rho,
-                                lambdaTimes = breakpoints,
-                                muTimes     = breakpoints,
-								psiTimes    = breakpoints,
-                                taxa        = taxa,
-                                condition   = "survival",
-								initialTree = starting_tree)
+psi ~ dnFossilizedBirthDeathProcess(origin      = stem_age,
+                                	lambda      = speciation_rate,
+	                                mu          = extinction_rate,
+	                                psi         = fossilization_rate,
+	                                rho         = rho,
+									timeline    = breakpoints,
+	                                taxa        = taxa,
+	                                condition   = "survival",
+									initialTree = starting_tree)
 
 # moves on the tree
 sample_ancestors = true

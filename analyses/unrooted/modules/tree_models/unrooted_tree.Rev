@@ -1,0 +1,29 @@
+###################################
+# specify the unrooted tree model #
+###################################
+
+"making the uniform time-tree model"
+
+# set flags
+tree_type = "non-clock"
+num_branches = 2 * ntax - 3
+
+# prior on branch lengths
+expected_num_subs <- 5.0
+mean_rate ~ dnLognormal( ln(abs(expected_num_subs / num_branches)) - H * H / 2, H)
+moves[++mvi] = mvScale(mean_rate, weight=5.0)
+monitors[1].addVariable(mean_rate)
+bl_dist = dnExponential(1 / mean_rate)
+
+# outgroup
+outgroup = clade(["Pertica_quadrifaria","Rhacophyton_ceratangium","Psilophyton_crenulatum"])
+
+# create the tree
+psi ~ dnUniformTopologyBranchLength(taxa, outgroup, bl_dist)
+
+# include the tree moves
+source(tree_moves_file)
+
+tree_monitor_fn[++ntm] = output_dir + "tree_"
+tree_monitor_tp[ntm] = "non-clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", psi)

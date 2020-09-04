@@ -1,0 +1,19 @@
+#########################
+# run the MCMC analysis #
+#########################
+
+ITERATIONS = 20000
+BURNIN     = 1000
+
+# make the model
+my_model = model(psi)
+
+# make the analysis
+my_mcmc = mcmcmc(my_model, monitors, moves, nchains=5, swapMode="multiple", swapMethod="both", delta=0.1, swapInterval=2, swapInterval2=5, tuneHeat=true)
+
+# run a burnin
+my_mcmc.burnin(BURNIN, tuningInterval=10)
+my_mcmc.operatorSummary()
+
+# run the full analysis
+my_mcmc.run(ITERATIONS)

@@ -1,0 +1,12 @@
+##########################################################################
+# specify the rate-variation among partitions for the morphological data #
+##########################################################################
+
+"making the morphological partition rate variation model (variable)"
+
+morph_rel_rates ~ dnDirichlet( rep(1, num_morph_partitions) )
+moves[++mvi] = mvBetaSimplex(morph_rel_rates, weight=num_morph_partitions)
+moves[++mvi] = mvElementSwapSimplex(morph_rel_rates, weight=2)
+
+morph_prop_rates := morph_rel_rates * num_morph_partitions
+monitors[1].addVariable(morph_prop_rates)

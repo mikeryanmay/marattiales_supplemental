@@ -1,0 +1,75 @@
+# this template script assumes the following variables are defined:
+#   - dataset
+#   - tree_model
+#   - branch_rate_model
+#   - time_bin_type
+#   - sampling_fraction (used by FBD tree prior models)
+#   - morph_rel_rate_model
+#   - morph_matrix_model
+#   - run_ID
+#   - sample_freq
+#   - num_iterations
+#   - analysis type
+#   - NUM_RATE_CATS_MORPH (for the number of discretized rates, morphological)
+#   - NUM_MIX_CATS_MORPH (for the number of mixture categories, morphological)
+#   - NUM_RATE_CATS_MOLE  (for the number of discretized rates, molecular)
+# all file paths are relative to step_1
+
+###########
+# helpers #
+###########
+
+H   = ln(10) / (qnorm(0.975) - qnorm(0.025))
+
+# monitor and move index
+mni = 0
+mvi = 0
+
+# sample frequency
+sample_freq = 5
+
+# tree monitors are created by specific scripts (not at the end)
+# the number of tree monitors is ntm
+# there will be a vector of names of tree files called tree_monitor_fn
+# that will be used at the end of the analysis to produce summary trees
+ntm = 0
+
+# this file monitor is for continuous parameters
+# it must be the first monitor!
+monitors[++mni] = mnFile(printgen=sample_freq, filename=output_dir + "params_" + run_ID + ".log")
+
+# this monitor is for the screen
+# it must be the second monitor!
+monitors[++mni] = mnScreen(printgen=sample_freq)
+
+#############
+# read data #
+#############
+
+# taxon data
+source(taxon_data_reader)
+
+# molecular data
+# source(mol_data_reader)
+
+# mophological data
+# source(morph_data_reader)
+
+# starting trees
+source(starting_tree_reader)
+
+##########################
+# specify the tree model #
+##########################
+
+source(tree_model_file)
+
+####################
+# run the analysis #
+####################
+
+# run the selected analysis
+source(analysis_file)
+
+# exit program
+q()

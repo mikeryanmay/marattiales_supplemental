@@ -1,0 +1,21 @@
+#####################
+# convert the trees #
+#####################
+
+# also make a summary tree
+
+tree_trace = readTreeTrace(file = tree_monitor_fn[2] + "combined.trees", treetype=tree_monitor_tp[2], burnin=0, thinning=5)
+trees = tree_trace.getTrees()
+no_exc_trace_fn = tree_monitor_fn[2] + "no_excavata_combined.trees"
+write("Iteration","Psi\n", filename=no_exc_trace_fn, sep="\t")
+for(i in 1:trees.size()) {
+	i + " / " + trees.size() 
+	pruned_tree = fnPruneTree(trees[i], ["Marattia_excavata"])
+	write(i, pruned_tree, filename=no_exc_trace_fn, sep="\t", append=true)
+	write("\n", filename=no_exc_trace_fn, sep="", append=true)
+}
+
+pruned_trace = readTreeTrace(file = no_exc_trace_fn, treetype=tree_monitor_tp[2], burnin=0, thinning=1)
+tree = mapTree(pruned_trace, file = tree_monitor_fn[2] + "no_excavata_combined_MAP.tre", ccp=true, ccAges=false, mean=true, positiveBranchLengths=true)
+tree = consensusTree(pruned_trace, file = tree_monitor_fn[2] + "no_excavata_combined_MRC.tre", positiveBranchLengths=true, cutoff=0.2)		
+tree = mccTree(pruned_trace, file = tree_monitor_fn[2] + "no_excavata_combined_MCC.tre", ccp=true, ccAges=false, mean=true, positiveBranchLengths=true)		

@@ -1,0 +1,19 @@
+###############################
+# read a random starting tree #
+###############################
+
+if ( use_starting_tree == true ) {
+
+	"reading starting trees."
+
+	# read the trees
+	starting_trees = readTrees(starting_tree_file)
+
+	# choose a random tree
+	num_tree_samples = starting_trees.size()
+	this_tree = floor( runif(1, 1, num_tree_samples)[1] )
+
+	# get the chosen tree
+	starting_tree = starting_trees[this_tree]
+	
+}

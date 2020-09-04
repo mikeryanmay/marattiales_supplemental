@@ -1,0 +1,6 @@
+###################
+# read taxon data #
+###################
+
+taxa = readTaxonData(taxa_file)
+ntax = taxa.size()

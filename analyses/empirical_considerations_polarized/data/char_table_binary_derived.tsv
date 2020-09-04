@@ -1,0 +1,5 @@
+names	num_states	index	states
+polyarch_root_stele	2	7	absent,present
+sporangia_developmentally_attached_forming_synangium	2	50	absent,present
+phloem_maturation	2	21	exarch,endarch
+sporangium_wall_thickness	2	89	thick_wallked,thin_walled

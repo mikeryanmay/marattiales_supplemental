@@ -47,14 +47,14 @@ moves[mvi].addVariable(speciation_rate, up=true)
 moves[mvi].addVariable(extinction_rate, up=true)
 
 # create the tree distribution
-psi ~ dnSerialSampledBirthDeath(origin    = stem_age,
-                                lambda    = speciation_rate,
-                                mu        = extinction_rate,
-                                psi       = fossilization_rate,
-                                rho       = rho,
-                                taxa      = taxa,
-                                condition = "survival",
-								initialTree = starting_tree)
+psi ~ dnFossilizedBirthDeathProcess(originAge = stem_age,
+								   	lambda    = speciation_rate,
+								   	mu        = extinction_rate,
+								   	psi       = fossilization_rate,
+								   	rho       = rho,
+								   	taxa      = taxa,
+								   	condition = "survival",
+									initialTree = starting_tree)
 
 # moves on the tree
 sample_ancestors = true

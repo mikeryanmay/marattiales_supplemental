@@ -1,0 +1,14 @@
+#########################
+# run the MCMC analysis #
+#########################
+
+ITERATIONS = 100
+BURNIN     = floor(ITERATIONS * 0.1)
+
+# make the model
+my_model = model(psi)
+
+my_mcmc = mcmc(my_model, monitors, moves, moveschedule="single")
+my_mcmc.burnin(BURNIN, tuningInterval=BURNIN)
+my_mcmc.run(ITERATIONS)
+my_mcmc.operatorSummary()

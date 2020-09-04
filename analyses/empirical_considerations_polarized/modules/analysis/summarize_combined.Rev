@@ -1,0 +1,20 @@
+#####################
+# convert the trees #
+#####################
+
+# also make a summary tree
+
+# for each tree file
+for(i in 1:ntm) {
+
+    # read the trees
+	tree_trace = readTreeTrace(file = tree_monitor_fn[i] + "combined.trees", treetype=tree_monitor_tp[i], burnin=0, thinning=3)
+
+	# compute and write the summary tree
+	if( tree_monitor_tp[i] == "clock" | true ) {
+		tree = mapTree(tree_trace, file = tree_monitor_fn[i] + "combined_MAP.tre", ccp=true, ccAges=false, mean=true, positiveBranchLengths=true)
+		tree = consensusTree(tree_trace, file = tree_monitor_fn[i] + "combined_MRC.tre", positiveBranchLengths=true, cutoff=0.2)		
+	    tree = mccTree(tree_trace, file = tree_monitor_fn[i] + "combined_MCC.tre", ccp=true, ccAges=false, mean=true, positiveBranchLengths=true)		
+	}
+	
+}

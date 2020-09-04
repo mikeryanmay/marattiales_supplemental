@@ -1,0 +1,83 @@
+###############################################
+# specify the unlinked UCLN branch-rate model #
+###############################################
+
+"making a UCLN branch-rate model for molecular data"
+
+# compute the number of extant taxa
+ntax_extant = ntax - fossils.size()
+for(i in 1:(2 * ntax_extant - 2)) {
+	extant_bl[i] = psi_extant.branchLength(i)
+}
+expected_num_subs = 2
+init_rate = expected_num_subs / sum(extant_bl)
+init_rate = 0.0005
+
+# the mean molecular rate
+branch_rate_mean_mole ~ dnLoguniform(1e-10, 10)
+branch_rate_mean_mole.setValue(init_rate)
+moves[++mvi] = mvScale(branch_rate_mean_mole, weight=20)
+monitors[1].addVariable(branch_rate_mean_mole)
+
+branch_rate_sd_mole ~ dnExponential(abs(1 / H))
+branch_rate_sd_mole.setValue(1)
+moves[++mvi] = mvScale(branch_rate_sd_mole, weight=20)
+monitors[1].addVariable(branch_rate_sd_mole)
+
+# the distribution from which rates are drawn
+branch_rate_mole_dist = dnLognormal( ln(branch_rate_mean_mole) - branch_rate_sd_mole * branch_rate_sd_mole * 0.5, branch_rate_sd_mole)
+
+# molecular rates per branch
+for(i in 1:num_branches) {
+	branch_rate_mole[i] ~ branch_rate_mole_dist
+	moves[++mvi] = mvScale(branch_rate_mole[i], weight=50 / num_branches)
+	monitors[1].addVariable(branch_rate_mole[i])
+}
+
+moves[++mvi] = mvUpDownScale(weight=5, tuneTarget=0.23)
+moves[mvi].addVariable(branch_rate_mole, up=true)
+moves[mvi].addVariable(branch_rate_mean_mole, up=true)
+moves[mvi].addVariable(branch_rate_sd_mole, up=true)
+
+moves[++mvi] = mvUpDownScale(weight=5, tuneTarget=0.23)
+moves[mvi].addVariable(branch_rate_mean_mole, up=true)
+moves[mvi].addVariable(branch_rate_sd_mole, up=true)
+
+mean_branch_rate_mole := mean(branch_rate_mole)
+monitors[1].addVariable(mean_branch_rate_mole)
+
+# if this is a time tree, initialize the rate moves
+if ( tree_type == "clock" ) {
+
+	# make the indices
+	rate_age_move_index    = ++mvi
+	rate_age_subtree_index = ++mvi
+	root_age_rescale_index = ++mvi
+	root_pulley_index      = ++mvi
+
+	# make the moves
+	moves[rate_age_move_index]    = mvRateAgeProposal(psi, weight=20, alpha=1, tune=false)
+	moves[rate_age_subtree_index] = mvRateAgeSubtreeProposal(psi, weight=10, alpha=1, tune=false)
+	moves[root_age_rescale_index] = mvRootTimeSlideRateScaleProposal(psi, stem_age, weight=5, alpha=1, tune=false)
+	moves[root_pulley_index]      = mvRootRatePulleyProposal(psi, weight=0)
+
+	# add the parameters
+	moves[rate_age_move_index].addRates(branch_rate_mole)
+	moves[rate_age_subtree_index].addRates(branch_rate_mole)
+	moves[root_age_rescale_index].addRates(branch_rate_mole)
+	
+	# add parameters to the tree-scale move
+	moves[tree_scale_move_index].addVariable(branch_rate_mole, up=false)
+	moves[tree_scale_move_index].addVariable(branch_rate_mean_mole, up=false)
+	moves[tree_scale_move_index].addVariable(branch_rate_sd_mole, up=false)
+	
+}
+
+# the molecular phylogram
+mole_phylogram := fnChronoToPhylo(psi, branch_rate_mole)
+tree_monitor_fn[++ntm] = output_dir + "mole_phylogram_"
+tree_monitor_tp[ntm] = "non-clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", mole_phylogram)
+
+mole_tree_length := mole_phylogram.treeLength()
+monitors[1].addVariable(mole_tree_length)

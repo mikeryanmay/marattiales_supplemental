@@ -1,0 +1,26 @@
+#######################
+# read molecular data #
+#######################
+
+# read the data
+"reading molecular data"
+molecular_data = readDiscreteCharacterData(mol_data_file)
+
+# get info about partitions
+num_molecular_partitions = molecular_data.size()
+for(i in 1:num_molecular_partitions) {
+    num_sites[i] = molecular_data[i].nchar()
+}
+
+# add missing taxa
+"adding missing taxa to molecular alignments"
+for(i in 1:num_molecular_partitions) {
+    x = molecular_data[i]
+    x.addMissingTaxa(taxa)
+    molecular_data[i] = x
+}
+
+# report
+for(i in 1:num_molecular_partitions) {
+    "\tread molecular data partition " + i + " with " + num_sites[i] + " sites and " + molecular_data[i].taxa().size() + " taxa."
+}

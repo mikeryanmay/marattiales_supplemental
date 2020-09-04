@@ -127,7 +127,6 @@ This script performs stochastic mapping with the same arguments as `pps_simulati
 This directory contains code used by the bash scripts in the scripts directory.
 
 ## Scripts
-- - -
 
 This directory contains miscellaneous scripts that either do not belong to individual analyses, or that may be useful outside of the individual analyses.
 - `geoscale_axis.R`: for plotting geological timescales

@@ -1,0 +1,45 @@
+#######################################
+# specify the uniform time-tree model #
+#######################################
+
+"making the uniform time-tree model"
+
+# set flags
+tree_type = "clock"
+num_branches = 2 * ntax - 2
+
+# never sample ancestors
+sample_ancestors = false
+
+# the origin time
+stem_age ~ dnUnif(410, 550)
+stem_age.setValue( (starting_tree.rootAge() + 550) / 2  )
+moves[++mvi] = mvSlide(stem_age, weight=20)
+monitors[1].addVariable(stem_age)
+
+# create the time tree
+psi ~ dnUniformSerialSampledTimeTree(originAge=stem_age, taxa=taxa)
+
+# moves on the tree
+sample_ancestors = false
+source(tree_moves_file)
+
+tree_monitor_fn[++ntm] = output_dir + "tree_"
+tree_monitor_tp[ntm] = "clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", psi)
+
+# get the extant tree
+psi_extant := fnPruneTree(psi, prune=fossils)
+tree_monitor_fn[++ntm] = output_dir + "extant_tree_"
+tree_monitor_tp[ntm] = "clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", psi_extant)
+
+# record the age of the MRCA of extant taxa
+root_age   := psi.rootAge()
+extant_age := psi_extant.rootAge()
+monitors[1].addVariable(root_age)
+monitors[1].addVariable(extant_age)
+
+monitors[2].addVariable(extant_age)
+monitors[2].addVariable(root_age)
+monitors[2].addVariable(stem_age)

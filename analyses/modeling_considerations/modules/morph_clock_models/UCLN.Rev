@@ -1,0 +1,83 @@
+###############################################
+# specify the unlinked UCLN branch-rate model #
+###############################################
+
+"making a UCLN branch-rate model for morphological data"
+
+# the mean morphological rate
+
+# specify a beta-prime prior for the relative rate of morph to mole
+# branch_rate_beta ~ dnBeta(1,1)
+# moves[++mvi] = mvBetaProbability(branch_rate_beta, weight=20, delta=10)
+branch_rate_beta ~ dnUniform(0, 1)
+moves[++mvi] = mvSlide(branch_rate_beta, weight=20, delta=0.1)
+branch_rate_beta.setValue(0.75)
+
+# compute the ratio of the rates
+branch_rate_ratio := abs(branch_rate_beta / (1.0 - branch_rate_beta))
+monitors[1].addVariable(branch_rate_ratio)
+
+# the mean branch rate
+branch_rate_mean_morph := branch_rate_ratio * branch_rate_mean_mole
+monitors[1].addVariable(branch_rate_mean_morph)
+
+# standard deviation of morph rates
+branch_rate_sd_morph ~ dnExponential(abs(1 / H))
+branch_rate_sd_morph.setValue(1)
+moves[++mvi] = mvScale(branch_rate_sd_morph, weight=20)
+monitors[1].addVariable(branch_rate_sd_morph)
+
+# the distribution from which rates are drawn
+branch_rate_morph_dist = dnLognormal( ln(branch_rate_mean_morph) - branch_rate_sd_morph * branch_rate_sd_morph * 0.5, branch_rate_sd_morph)
+
+# morphcular rates per branch
+for(i in 1:num_branches) {
+    branch_rate_morph[i] ~ branch_rate_morph_dist
+    moves[++mvi] = mvScale(branch_rate_morph[i], weight=50 / num_branches)
+    monitors[1].addVariable(branch_rate_morph[i])
+}
+
+moves[++mvi] = mvUpDownScale(weight=5, tuneTarget=0.23)
+moves[mvi].addVariable(branch_rate_morph, up=true)
+moves[mvi].addVariable(branch_rate_beta, up=true)
+moves[mvi].addVariable(branch_rate_sd_morph, up=true)
+
+moves[++mvi] = mvUpDownScale(weight=5, tuneTarget=0.23)
+moves[mvi].addVariable(branch_rate_beta, up=true)
+moves[mvi].addVariable(branch_rate_sd_morph, up=true)
+
+moves[++mvi] = mvUpDownScale(weight=5, tuneTarget=0.23)
+moves[mvi].addVariable(branch_rate_morph, up=true)
+moves[mvi].addVariable(branch_rate_beta, up=true)
+moves[mvi].addVariable(branch_rate_mean_mole, up=false)
+
+moves[++mvi] = mvUpDownScale(weight=5, tuneTarget=0.23)
+moves[mvi].addVariable(branch_rate_sd_mole, up=true)
+moves[mvi].addVariable(branch_rate_sd_morph, up=true)
+
+mean_branch_rate_morph := mean(branch_rate_morph)
+monitors[1].addVariable(mean_branch_rate_morph)
+
+# joint moves on rates and times
+if ( tree_type == "clock" ) {
+	
+    moves[rate_age_move_index].addRates(branch_rate_morph)
+	moves[rate_age_subtree_index].addRates(branch_rate_morph)
+	moves[root_age_rescale_index].addRates(branch_rate_morph)
+	moves[root_pulley_index].addRates(branch_rate_morph)
+	
+	# add parameters to the tree-scale move
+	moves[tree_scale_move_index].addVariable(branch_rate_morph, up=false)
+	moves[tree_scale_move_index].addVariable(branch_rate_beta, up=false)
+	moves[tree_scale_move_index].addVariable(branch_rate_sd_morph, up=false)
+	
+}
+
+# the morphological phylogram
+morph_phylogram := fnChronoToPhylo(psi, branch_rate_morph)
+tree_monitor_fn[++ntm] = output_dir + "morph_phylogram_"
+tree_monitor_tp[ntm] = "non-clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", morph_phylogram)
+
+morph_tree_length := morph_phylogram.treeLength()
+monitors[1].addVariable(morph_tree_length)

@@ -1,0 +1,64 @@
+######################################
+# specify the molecular matrix model #
+######################################
+
+"making the partitioned JC+G model for morphology"
+
+NUM_RATE_CATS_MORPH = 4
+
+# each data partition gets independent JC
+for(i in 1:num_morph_partitions) {
+
+    Q_morph[i] <- fnJC(num_states[i])
+
+    # make the rate model for each partition
+    if ( num_chars[i] > 1 ) {
+
+        # gamma_var_morph[i] ~ dnExponential(1)
+        # gamma_var_morph[i].setValue(1.0)
+        # moves[++mvi] = mvScale(gamma_var_morph[i], weight=0.5)
+        # gamma_alpha_morph[i] := 1.0 / gamma_var_morph[i]
+		# monitors[1].addVariable(gamma_var_morph[i])
+		# monitors[1].addVariable(gamma_alpha_morph[i])
+
+		gamma_alpha_morph[i] ~ dnUniform(0, 10)
+		# gamma_alpha_morph[i] ~ dnGamma(2,2)
+		moves[++mvi] = mvScale(gamma_alpha_morph[i], weight=0.5)
+        monitors[1].addVariable(gamma_alpha_morph[i])
+
+        char_rates[i] := fnDiscretizeGamma(gamma_alpha_morph[i], gamma_alpha_morph[i], NUM_RATE_CATS_MORPH)
+
+    } else {
+        char_rates[i] <- [1.0]
+    }
+
+}
+
+# joint proposal on rates and alphas
+# if ( exists("morph_rescaler") ) {
+# 
+# 	for(i in 1:num_morph_partitions) {
+# 		moves[++mvi] = mvUpDownScale(weight=3, lambda=2, tune=false)
+# 		moves[mvi].addVariable(gamma_alpha_morph[i], up=true)
+# 		moves[mvi].addVariable(morph_rel_rates[i], up=false)
+# 	}
+# 
+# }
+
+# create the CTMCs
+for(i in 1:num_morph_partitions) {
+
+    # make the phyloCTMC
+    char[i] ~ dnPhyloCTMC(psi, Q_morph[i], branchRates=branch_rate_morph, siteRates=char_rates[i] * morph_prop_rates[i], type="Standard", coding="variable")
+
+    # clamp the observed data
+    char[i].clamp( morph_data[i] )
+
+	# track the likelihood
+	char_likelihood[i] := char[i].lnProbability()
+	monitors[1].addVariable(char_likelihood[i])
+
+    # create a mixture allocation monitor
+    # monitors[++mni] = mnSiteMixtureAllocation(char[i], printgen=sample_freq, filename=output_dir + "char_mixture_" + i + "_" + run_ID + ".log", type="Standard")
+
+}

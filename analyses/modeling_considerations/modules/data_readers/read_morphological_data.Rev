@@ -1,0 +1,27 @@
+###########################
+# read morphological data #
+###########################
+
+# read the data
+"reading morphological data"
+morph_data = readDiscreteCharacterData(morph_data_file)
+
+# get info about partitions
+num_morph_partitions = morph_data.size()
+for(i in 1:num_morph_partitions) {
+    num_chars[i] = morph_data[i].nchar()
+    num_states[i] = morph_data[i].getStateDescriptions().size()
+}
+
+# add missing taxa
+"adding missing taxa to morphological alignments"
+for(i in 1:num_morph_partitions) {
+    x = morph_data[i]
+    x.addMissingTaxa(taxa)
+    morph_data[i] = x
+}
+
+# report
+for(i in 1:num_morph_partitions) {
+    "\tread morphological data partition " + i + " with " + num_states[i] + " states and " + num_chars[i] + " chars and " + morph_data[i].taxa().size() + " taxa."
+}

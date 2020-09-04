@@ -1,0 +1,31 @@
+########################################
+# specify the linked branch-rate model #
+########################################
+
+"making a linked branch-rate model for morphological data"
+
+# specify a beta-prime prior for the relative rate of morph to mole
+branch_rate_beta ~ dnBeta(1,1)
+moves[++mvi] = mvBetaProbability(branch_rate_beta, weight=5, delta=10)
+
+# compute the ratio of the rates
+branch_rate_ratio := abs(branch_rate_beta / (1.0 - branch_rate_beta))
+monitors[1].addVariable(branch_rate_ratio)
+
+branch_rate_mean_morph := branch_rate_ratio * branch_rate_mean_mole
+monitors[1].addVariable(branch_rate_mean_morph)
+
+branch_rate_morph := branch_rate_ratio * branch_rate_mole
+
+moves[++mvi] = mvUpDownScale(weight=5, tuneTarget=0.23)
+moves[mvi].addVariable(branch_rate_beta, up=true)
+moves[mvi].addVariable(branch_rate_mean_mole, up=false)
+
+# the morphological phylogram
+morph_phylogram := fnChronoToPhylo(psi, branch_rate_morph)
+tree_monitor_fn[++ntm] = output_dir + "morph_phylogram_"
+tree_monitor_tp[ntm] = "non-clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", morph_phylogram)
+
+morph_tree_length := morph_phylogram.treeLength()
+monitors[1].addVariable(morph_tree_length)

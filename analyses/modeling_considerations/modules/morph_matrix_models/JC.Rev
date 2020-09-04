@@ -1,0 +1,27 @@
+######################################
+# specify the molecular matrix model #
+######################################
+
+"making the partitioned JC model for morphology"
+
+# each data partition gets independent JC
+for(i in 1:num_morph_partitions) {
+
+    Q_morph[i] <- fnJC(num_states[i])
+
+}
+
+# create the CTMCs
+for(i in 1:num_morph_partitions) {
+
+    # make the phyloCTMC
+    char[i] ~ dnPhyloCTMC(psi, Q_morph[i], branchRates=branch_rate_morph, siteRates=[morph_prop_rates[i]], type="Standard", coding="variable")
+
+    # clamp the observed data
+    char[i].clamp( morph_data[i] )
+
+	# track the likelihood
+	char_likelihood[i] := char[i].lnProbability()
+	monitors[1].addVariable(char_likelihood[i])
+
+}

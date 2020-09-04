@@ -1,0 +1,118 @@
+#######################################
+# specify the constant-rate FBD model #
+#######################################
+
+"making the variable-rate FBD model with mixture prior on fossilization rates"
+
+# load the sampling fraction
+rho <- 36.0 / 12000.0
+
+# check for starting tree
+if ( use_starting_tree == FALSE ) {
+	"Error: this tree model requires a starting tree."
+	q()
+}
+
+# set flags
+tree_type = "clock"
+num_branches = 2 * ntax - 2
+num_div_rate_cats = 3
+
+# the origin time
+stem_age ~ dnUnif(410, 550)
+stem_age.setValue( (starting_tree.rootAge() + 550) / 2  )
+moves[++mvi] = mvSlide(stem_age, weight=20)
+monitors[1].addVariable(stem_age)
+
+# read the epochs
+timescale = readDataDelimitedFile(file = epoch_file, header = true, delimiter=",")
+num_bins  = timescale.size()
+
+for(i in 1:num_bins) {
+    breakpoints[num_bins + 1 - i] <- timescale[i][2]
+}
+
+# the mean fossilization rate
+fossilization_rate_mean ~ dnExponential(10)
+fossilization_rate_mean.setValue(0.1)
+moves[++mvi] = mvScale(fossilization_rate_mean, weight=10)
+# monitors[1].addVariable(fossilization_rate_mean)
+
+# the fossilization-rate mixture model
+for(i in 1:num_div_rate_cats) {
+	
+	fossilization_mixture_rates_quantile[i] ~ dnUniform(0,1)
+	moves[++mvi] = mvSlide(fossilization_mixture_rates_quantile[i], weight=5, delta=0.25, tune=false)
+	fossilization_mixture_rates_quantile[i].setValue(0.5)
+	fossilization_mixture_rates[i] := qexp(fossilization_mixture_rates_quantile[i], 1 / fossilization_rate_mean)
+	monitors[1].addVariable(fossilization_mixture_rates[i])
+	
+}
+
+fossilization_mixture_weights ~ dnDirichlet( rep(1, num_div_rate_cats) )
+moves[++mvi] = mvBetaSimplex(fossilization_mixture_weights, weight=5)
+moves[++mvi] = mvElementSwapSimplex(fossilization_mixture_weights, weight=5)
+monitors[1].addVariable(fossilization_mixture_weights)
+
+# draw the rates for each interval
+for(i in 1:(breakpoints.size() + 1)) {
+    fossilization_rate[i] ~ dnMixture( fossilization_mixture_rates, fossilization_mixture_weights )
+    moves[++mvi] = mvGibbsMixtureAllocation( fossilization_rate[i], weight=2 )
+    monitors[1].addVariable(fossilization_rate[i])
+}
+
+# speciation- and extinction-rate parameters
+speciation_rate ~ dnExponential(10)
+speciation_rate.setValue(0.2)
+moves[++mvi] = mvScale(speciation_rate, weight=5)
+monitors[1].addVariable(speciation_rate)
+
+extinction_rate ~ dnExponential(10)
+extinction_rate.setValue(0.15)
+moves[++mvi] = mvScale(extinction_rate, weight=5)
+monitors[1].addVariable(extinction_rate)
+
+moves[++mvi] = mvUpDownSlide(weight=5)
+moves[mvi].addVariable(speciation_rate, up=true)
+moves[mvi].addVariable(extinction_rate, up=true)
+
+# create the tree distribution
+psi ~ dnSerialSampledBirthDeath(origin    = stem_age,
+                                lambda    = speciation_rate,
+                                mu        = extinction_rate,
+                                psi       = fossilization_rate,
+                                rho       = rho,
+                                psiTimes  = breakpoints,
+                                taxa      = taxa,
+                                condition = "survival",
+								initialTree = starting_tree)
+
+# moves on the tree
+sample_ancestors = true
+source(tree_moves_file)
+moves[tree_scale_move_index].addVariable(speciation_rate, up=true)
+moves[tree_scale_move_index].addVariable(extinction_rate, up=true)
+
+# sampled ancestors
+num_samp_anc := psi.numSampledAncestors()
+monitors[1].addVariable(num_samp_anc)
+
+tree_monitor_fn[++ntm] = output_dir + "tree_"
+tree_monitor_tp[ntm] = "clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", psi)
+
+# get the extant tree
+psi_extant := fnPruneTree(psi, prune=fossils)
+tree_monitor_fn[++ntm] = output_dir + "extant_tree_"
+tree_monitor_tp[ntm] = "clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", psi_extant)
+
+# record the age of the MRCA of extant taxa
+root_age   := psi.rootAge()
+extant_age := psi_extant.rootAge()
+monitors[1].addVariable(root_age)
+monitors[1].addVariable(extant_age)
+
+monitors[2].addVariable(extant_age)
+monitors[2].addVariable(root_age)
+monitors[2].addVariable(stem_age)

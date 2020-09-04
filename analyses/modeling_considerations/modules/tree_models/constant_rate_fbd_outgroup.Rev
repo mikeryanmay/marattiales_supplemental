@@ -1,0 +1,89 @@
+#######################################
+# specify the constant-rate FBD model #
+#######################################
+
+"making the constant-rate FBD model"
+
+# load the sampling fraction
+rho <- 36.0 / 12000.0
+
+# check for starting tree
+if ( use_starting_tree == FALSE ) {
+	"Error: this tree model requires a starting tree."
+	q()
+}
+
+# set flags
+tree_type = "clock"
+num_branches = 2 * ntax - 2
+
+# the origin time
+stem_age ~ dnUnif(410, 550)
+stem_age.setValue( (starting_tree.rootAge() + 550) / 2  )
+moves[++mvi] = mvSlide(stem_age, weight=20)
+monitors[1].addVariable(stem_age)
+
+# parameters
+# fossilization_rate ~ dnLoguniform(0.0001, 10)
+fossilization_rate ~ dnExponential(10)
+fossilization_rate.setValue(0.01)
+moves[++mvi] = mvScale(fossilization_rate, weight=10)
+monitors[1].addVariable(fossilization_rate)
+
+# speciation_rate ~ dnLoguniform(0.0001, 10)
+speciation_rate ~ dnExponential(10)
+speciation_rate.setValue(0.1)
+moves[++mvi] = mvScale(speciation_rate, weight=10)
+monitors[1].addVariable(speciation_rate)
+
+# extinction_rate ~ dnLoguniform(0.0001, 10)
+extinction_rate ~ dnExponential(10)
+extinction_rate.setValue(0.09)
+moves[++mvi] = mvScale(extinction_rate, weight=10)
+monitors[1].addVariable(extinction_rate)
+
+moves[++mvi] = mvUpDownSlide(weight=5)
+moves[mvi].addVariable(speciation_rate, up=true)
+moves[mvi].addVariable(extinction_rate, up=true)
+
+# create the tree distribution
+psi ~ dnSerialSampledBirthDeath(origin    = stem_age,
+                                lambda    = speciation_rate,
+                                mu        = extinction_rate,
+                                psi       = fossilization_rate,
+                                rho       = rho,
+                                taxa      = taxa,
+                                condition = "survival",
+								initialTree = starting_tree)
+
+# writeNexus(psi, file="../data/" + dataset + "/starting_tree.nex")
+
+# moves on the tree
+sample_ancestors = true
+source(tree_moves_file)
+moves[tree_scale_move_index].addVariable(speciation_rate, up=true)
+moves[tree_scale_move_index].addVariable(extinction_rate, up=true)
+
+# sampled ancestors
+num_samp_anc := psi.numSampledAncestors()
+monitors[1].addVariable(num_samp_anc)
+
+tree_monitor_fn[++ntm] = output_dir + "tree_"
+tree_monitor_tp[ntm] = "clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", psi)
+
+# get the extant tree
+psi_extant := fnPruneTree(psi, prune=fossils)
+tree_monitor_fn[++ntm] = output_dir + "extant_tree_"
+tree_monitor_tp[ntm] = "clock"
+monitors[++mni] = mnFile(printgen=sample_freq, filename=tree_monitor_fn[ntm] + run_ID + ".trees", psi_extant)
+
+# record the age of the MRCA of extant taxa
+root_age   := psi.rootAge()
+extant_age := psi_extant.rootAge()
+monitors[1].addVariable(root_age)
+monitors[1].addVariable(extant_age)
+
+monitors[2].addVariable(extant_age)
+monitors[2].addVariable(root_age)
+monitors[2].addVariable(stem_age)

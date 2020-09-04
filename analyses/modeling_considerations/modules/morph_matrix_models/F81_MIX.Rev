@@ -1,0 +1,73 @@
+######################################
+# specify the molecular matrix model #
+######################################
+
+"making the partitioned F81 mixture model for morphology"
+
+NUM_MIX_CATS_MORPH  = 5
+
+# the amount of variation among characters
+var_mix ~ dnExponential(1)
+moves[++mvi] = mvScale(var_mix, weight=2)
+alpha_mix := 1.0 / var_mix
+
+monitors[1].addVariable(var_mix)
+monitors[1].addVariable(alpha_mix)
+
+# the number of categories
+mix_cats := fnDiscretizeBeta(alpha_mix, alpha_mix, NUM_MIX_CATS_MORPH)
+monitors[1].addVariable(mix_cats)
+
+nc = 0
+for(i in 1:num_morph_partitions) {
+
+    if ( num_states[i] == 2 ) {
+
+        for(j in 1:NUM_MIX_CATS_MORPH) {
+            Q_morph[i][j] := fnF81( simplex(abs(mix_cats[j]), abs(1 - mix_cats[j])) )
+        }
+        morph_matrix_weights[i] <- simplex(rep(1, NUM_MIX_CATS_MORPH))
+
+    } else {
+
+		# check number of characters
+
+        for(j in 1:NUM_MIX_CATS_MORPH) {
+
+            # draw stationary freqs
+            pi_morpho[++nc] ~ dnDirichlet( rep(1, num_states[i]) )
+            moves[++mvi] = mvBetaSimplex(pi_morpho[nc], 0.5)
+            monitors[1].addVariable(pi_morpho[nc])
+
+            # make the matrix
+            Q_morph[i][j] := fnF81(pi_morpho[nc])
+
+        }
+
+        # mixture weight for each matrix
+        morph_matrix_weights[i] ~ dnDirichlet( rep(1, NUM_MIX_CATS_MORPH) )
+        moves[++mvi] = mvBetaSimplex(morph_matrix_weights[i], 0.5)
+        moves[++mvi] = mvElementSwapSimplex(morph_matrix_weights[i])
+        monitors[1].addVariable(morph_matrix_weights[i])
+
+    }
+
+}
+
+# create the CTMCs
+for(i in 1:num_morph_partitions) {
+
+    # make the phyloCTMC
+    char[i] ~ dnPhyloCTMC(psi, Q_morph[i], siteMatrices=morph_matrix_weights[i], branchRates=branch_rate_morph, siteRates=[morph_prop_rates[i]], type="Standard", coding="variable")
+
+    # clamp the observed data
+    char[i].clamp( morph_data[i] )
+
+	# track the likelihood
+	char_likelihood[i] := char[i].lnProbability()
+	monitors[1].addVariable(char_likelihood[i])
+
+    # create a mixture allocation monitor
+    # monitors[++mni] = mnSiteMixtureAllocation(char[i], printgen=sample_freq, filename=output_dir + "char_mixture_" + i + "_" + run_ID + ".log", type="Standard")
+
+}

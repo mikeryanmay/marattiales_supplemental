@@ -1,0 +1,25 @@
+#####################
+# convert the trees #
+#####################
+
+# also make a summary tree
+
+# for each tree file
+for(i in 1:ntm) {
+
+    # read the trees
+	tree_trace = readTreeTrace(file = tree_monitor_fn[i] + run_ID + ".trees", treetype=tree_monitor_tp[i], burnin=0)
+
+	# write the trees in nexus format
+	# (for post-processing things)
+	nexus_trees = tree_trace.getTrees()
+	writeNexus(nexus_trees, file = tree_monitor_fn[i] + run_ID + ".nex")
+
+	if ( tree_monitor_tp[i] == "clock" ) {
+		tree_trace = readTreeTrace(file = tree_monitor_fn[i] + run_ID + ".trees", treetype=tree_monitor_tp[i], burnin=0.25)
+		tree = mapTree(tree_trace, file = tree_monitor_fn[i] + run_ID + "_MAP.tre", ccp=true, ccAges=true, mean=false, positiveBranchLengths=true)
+		tree = consensusTree(tree_trace, file = tree_monitor_fn[i] + run_ID + "_MRC.tre", positiveBranchLengths=true, cutoff=0.1)
+	    tree = mccTree(tree_trace, file = tree_monitor_fn[i] + run_ID + "_MCC.tre", ccp=true, ccAges=true, mean=false, positiveBranchLengths=true)		
+	}
+
+}

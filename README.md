@@ -1,5 +1,4 @@
 # Supplementary Archive
-- - -
 
 Welcome to the supplementary archive for "Inferring the total-evidence timescale of marattialean fern evolution in the face of extreme model sensitivity and the absence of close extant relatives".
 This archive is divided into three subdirectories: data, analyses, and scripts, each described below.
@@ -7,14 +6,12 @@ This archive is divided into three subdirectories: data, analyses, and scripts, 
 The code presented here is suitable for use with `RevBayes` compiled from the `ssbdp_fixes` branch, commit `ff39b2f1cf5604870b185ed0b85fd074cea517da`.
 
 ## Data
-- - -
 
 We provide our raw morphological and molecular datasets in `data/raw`, and corresponding curated datasets in `data/curated`.
 For morphological data, we provide character data for all (including the ancient plant taxa we used in one set of analyses).
 We used subsets of these morphological and molecular datasets for most of our analyses; we also provide these subsets in the analysis-specific directories (described below).
 
 ## Analyses
-- - -
 
 This directory contains five subdirectories, corresponding to the primary analyses performed in our study.
 Each subdirectory contains four folders: `/data`, `/modules`, `/scripts`, and `/src`, described next.

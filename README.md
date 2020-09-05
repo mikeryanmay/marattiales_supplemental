@@ -8,18 +8,19 @@ The code presented here is suitable for use with `RevBayes` compiled from the `s
 ## Data
 
 We provide our raw morphological and molecular datasets in `data/raw`, and corresponding curated datasets in `data/curated`.
-For morphological data, we provide character data for all (including the ancient plant taxa we used in one set of analyses).
-We used subsets of these morphological and molecular datasets for most of our analyses; we also provide these subsets in the analysis-specific directories (described below).
+For morphological data, we provide character data for all taxa (including the ancient plant taxa we used in one set of analyses).
+We used subsets of these morphological and molecular datasets for most of our analyses; we provide these individual subsets in the analysis-specific directories (described below).
 
 ## Analyses
 
 This directory contains five subdirectories, corresponding to the primary analyses performed in our study.
 Each subdirectory contains four folders: `/data`, `/modules`, `/scripts`, and `/src`, described next.
-**The scripts folder is the most important**: the scripts in this folder can be used to generate `RevBayes` analyses using the files in the `data` and the code in `modules`.
+**The scripts folder is the most important**: the scripts in this folder can be used to generate `RevBayes` analyses using the files in the `data` and the code in `modules`. (To use these files, keep the directory structure intact, or change the paths in the relevant sections of the scripts).
 
 ### `data`
 
-The directory `/analyses/\*/data` contains data subsets specific to the analysis:
+The directory `/analyses/*/data` contains data subsets specific to the analysis:
+
 - `molecular.nex`: molecular alignments.
 - `morpho.nex`: morphological alignments.
 - `taxa.tsv`: age data (min and max age) for each taxon.
@@ -35,28 +36,31 @@ These are mostly used by the script `make_analyses.sh` (described in the next se
 ### `scripts`
 
 This directory contains bash scripts that can be used to create the `RevBayes` code we used in our study.
-In particular, `make_analyses.sh` generates a directory containing RevBayes scripts that are built from the code in modules.
+In particular, `make_analyses.sh` generates a directory containing RevBayes scripts that are built from the code in `modules`.
 The remaining scripts perform MCMC diagnosis, post-processing, posterior-predictive simulation, and stochastic mapping.
 We describe each script in the order they should be used.
 All of these scripts are intended to be run from the corresponding /analyses directory
 
 ##### Using `make_analyses.sh`
 
-We assume the TED model has five components: the substitution model, the molecular clock model, the morphological transition model, the morphological clock model, and the tree model.
+We divide the TED model into five components: the substitution model, the molecular clock model, the morphological transition model, the morphological clock model, and the tree model.
 There is one directory in modules for each of these components.
-Running `make_analyses.sh` from the /analyses/* directory will assemble one script per combination of model components.
+Running `make_analyses.sh` from the `/analyses/*` directory will assemble one script per combination of model components.
 This script has arguments (and defaults when applicable):
-- `-d`: the directory to locate data (default /data)
-- `-m`: the directory to locate module files (default /modules)
-- `-a`: the type of analysis to perform (e.g., MCMC or MCMCMC), (default /modules/analysis/MCMC.Rev)
-- `-t`: the RevBayes template used to stitch modules together (default /modules/templates/template.Rev)
-- `-o`: the directory in which to place output (default /output)
-- `-n`: the number of replicate analyses to perform (default 4)
-- `-j`: the directory to place the RevBayes scripts (default /jobs)
 
-The default values largely correspond to those we used in our analyses, so that executing the following code with populate the jobs folder with scripts necessary to recreate our analyses:
+- `-d`: the directory to locate data (default: /data)
+- `-m`: the directory to locate module files (default: /modules)
+- `-a`: the type of analysis to perform (e.g., MCMC or MCMCMC), (default: /modules/analysis/MCMC.Rev)
+- `-t`: the RevBayes template used to stitch modules together (default: /modules/templates/template.Rev)
+- `-o`: the directory in which to place output (default: /output)
+- `-n`: the number of replicate analyses to perform (default: 4)
+- `-j`: the directory to place the RevBayes scripts (default: /jobs)
+
+The default values largely correspond to those we used in our analyses, so that executing the following code will populate the jobs folder with scripts necessary to recreate our analyses:
 
 	bash scripts/make_analyses.sh -a modules/analysis/MCMCMC.Rev -t modules/templates/template.Rev
+
+[//]: # (CJR -- should this be .../MCMC.Rev ? )
 
 The resulting RevBayes scripts are intended to be run from the /analyses/* directory.
 
@@ -102,6 +106,7 @@ This script uses combined samples (create in the previous step) to simulate new 
 We then compute the summary statistics described in the main text for each simulated dataset, and write them into a .csv for post-processing.
 
 This script has arguments (and defaults when applicable):
+
 - `-d`: the directory to locate data (default /data)
 - `-s`: the directory with the MCMC output (default /output)
 - `-o`: the directory in which to place the PPS statistics (default /output)
@@ -129,6 +134,7 @@ This directory contains code used by the bash scripts in the scripts directory.
 ## Scripts
 
 This directory contains miscellaneous scripts that either do not belong to individual analyses, or that may be useful outside of the individual analyses.
+
 - `geoscale_axis.R`: for plotting geological timescales
 - `mds.R`: for performing MDS analysis with posterior samples of trees. Examples of use can be found in `analyses/src/mcmc_diagnosis_mds.R`
 - `plot_tree.R`: for plotting nice serial-sampled trees with sampled ancestors.

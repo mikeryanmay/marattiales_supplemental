@@ -1,6 +1,6 @@
 # Supplementary Archive
 
-Welcome to the supplementary archive for "Inferring the total-evidence timescale of marattialean fern evolution in the face of extreme model sensitivity and the absence of close extant relatives".
+Welcome to the supplementary archive for "Inferring the total-evidence timescale of marattialean fern evolution in the face of extreme model sensitivity".
 This archive is divided into three subdirectories: data, analyses, and scripts, each described below.
 
 The code presented here is suitable for use with `RevBayes` compiled from the `ssbdp_fixes` branch, commit `ff39b2f1cf5604870b185ed0b85fd074cea517da`.
